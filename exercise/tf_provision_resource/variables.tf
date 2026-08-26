@@ -35,6 +35,8 @@ variable "ssh_public_key_path" {
 # IPV4_ADDRESS FQDN HOSTNAME POD_SUBNET
 variable "machines" {
   description = "Machines to provision for the tutorial."
+
+  # The type is a map of objects, where each object has instance_type, volume_size, and optional pod_subnet
   type = map(object({
     instance_type = string
     volume_size   = number

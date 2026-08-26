@@ -1,5 +1,6 @@
 output "instance_ips" {
   description = "Elastic IP of each provisioned machine."
+  # Print out elastic IP of each
   value = {
     for name, eip in aws_eip.machine : name => eip.public_ip
   }
