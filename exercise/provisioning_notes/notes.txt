@@ -1,0 +1,4 @@
+IPV4_ADDRESS: Normal 0.0.0.0 
+FQDN: Fully qualified domain name, it needs to end in kubernetes.local
+Hostname: The complete, unambiguous name of host 
+Pod_subnet (in which subnet the pod belong to)
