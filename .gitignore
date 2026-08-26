@@ -49,3 +49,31 @@ service-account.pem
 service-account-csr.json
 *.swp
 .idea/
+
+# Local .terraform directories
+**/.terraform/*
+
+# .tfstate files
+*.tfstate
+*.tfstate.*
+
+# Crash log files
+crash.log
+crash.*.log
+
+# Exclude variable files that may contain sensitive data
+*.tfvars
+*.tfvars.json
+
+# Ignore override files (used for local overrides)
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Ignore CLI config files
+.terraformrc
+terraform.rc
+
+# Ignore plan output
+*.tfplan
