@@ -70,6 +70,18 @@ resource "aws_instance" "machine" {
   # Apply the security group
   vpc_security_group_ids = [aws_security_group.kthw.id]
 
+  # Runs once on first boot (cloud-init). 
+  # user_data is a TF resource argument that is passed to the instance at launch.
+  user_data = <<-EOF
+    #!/bin/bash
+    sed -i 's/^#*PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
+    mkdir -p /root/.ssh
+    cp /home/admin/.ssh/authorized_keys /root/.ssh/authorized_keys
+    chmod 700 /root/.ssh
+    chmod 600 /root/.ssh/authorized_keys
+    systemctl restart sshd
+  EOF
+
   root_block_device {
     volume_size = each.value.volume_size
     volume_type = "gp3"
