@@ -18,6 +18,30 @@ This is the one self-signed cert in the whole setup — the root of trust everyt
 else chains up to. `ca.conf`'s top-level `[req]` / `[req_distinguished_name]` sections
 supply its identity (`CN = CA`, org details).
 
+## Why 8 identities for only 3 machines
+
+Your actual cluster is only 3 physical machines (`server`, `node-0`, `node-1`), but
+`certs[]` below lists 8 entries. That's because Kubernetes authenticates and
+authorizes per **logical identity**, not per machine — several components sharing one
+box still each need their own provable identity:
+
+| Identity | Runs on | Why it needs its own identity |
+|---|---|---|
+| `admin` | you, via `kubectl` (from `server` or jumpbox) | You, the human operator — full cluster-admin RBAC rights |
+| `node-0` | `node-0` | That node's `kubelet` — the Node Authorizer checks this specific identity |
+| `node-1` | `node-1` | Same, for the other node |
+| `kube-proxy` | both `node-0` and `node-1` | The proxy process on every node shares one identity (same binary everywhere, no need to distinguish per node) |
+| `kube-scheduler` | `server` | Assigns pods to nodes — separate RBAC scope from... |
+| `kube-controller-manager` | `server` | ...running the control loops (replication, etc.) — different RBAC scope again |
+| `kube-api-server` | `server` | Different kind of cert: a **server** cert, not a client cert — everyone else verifies *it* using this cert during the handshake |
+| `service-accounts` | `server` (used by `kube-controller-manager`) | Not a network identity at all — a signing key pair used to *mint* tokens for pods running inside the cluster |
+
+So `server` alone accounts for 4 of the 8 identities, even though it's one machine —
+each process on it is a distinct actor making its own authenticated calls, and
+Kubernetes' RBAC model is built around least privilege per identity. If
+`kube-scheduler` and `kube-controller-manager` shared a cert, you couldn't grant them
+different permissions or revoke one without breaking the other.
+
 ## The per-component certs
 
 ```bash
