@@ -90,6 +90,40 @@ One identity per Kubernetes component (plus the human `admin` user, plus
 `service-accounts`, which is just a signing key pair the controller manager uses
 internally — it doesn't identify a network endpoint).
 
+### Why each of the three commands is needed — `genrsa` alone isn't enough
+
+**`openssl genrsa -out "${i}.key" 4096`**
+Generates the private key only. Pure math — no identity info needed at all. This step
+doesn't touch `ca.conf`.
+
+**`openssl req -new -key "${i}.key" -sha256 -config "ca.conf" -section ${i} -out "${i}.csr"`**
+This is where `ca.conf` comes in. A CSR needs to say *who this key belongs to* and
+*what the cert should be allowed to do* — and that's exactly the info you don't have
+yet after `genrsa` (which only produces raw key material, no identity attached). So:
+- `-config "ca.conf"` — points at the file
+- `-section ${i}` — for this loop iteration, e.g. `-section node-0`, only read
+  `ca.conf`'s `[node-0]` block (which itself points to `[node-0_distinguished_name]`
+  for the identity and `[node-0_req_extensions]` for what it's allowed to do)
+- Result: `node-0.csr` = "here's `node-0`'s public key (derived from `node-0.key`), and
+  here's the identity/capabilities I want baked in — `CN=system:node:node-0`,
+  `clientAuth`, etc."
+
+Without `-config`/`-section`, `openssl req` would either prompt you interactively for
+every field, or you'd have to pass a long `-subj "/CN=.../O=..."` string plus separate
+extension flags by hand — `ca.conf` just pre-stores all of that per identity so the
+loop can reuse it.
+
+**`openssl x509 -req -in "${i}.csr" -CA "ca.crt" -CAkey "ca.key" ... -out "${i}.crt"`**
+This step doesn't reference `ca.conf` at all — it signs whatever's already inside
+`${i}.csr`. `-copy_extensions copyall` just means "carry over the extensions that were
+already set in the CSR (from `ca.conf`) into the final cert," rather than dropping
+them.
+
+So: `ca.conf` is used in the **middle step** (`req`), to tell OpenSSL who this specific
+cert claims to be and what it's authorized to do — `genrsa` doesn't know or care about
+identity, and `x509 -req` just signs whatever identity/extensions the CSR already
+carries.
+
 `ca.CAcreateserial` is why `ca.srl` shows up after the first cert is signed — OpenSSL
 uses it to hand out a unique serial number to each cert it signs.
 
