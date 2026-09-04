@@ -57,3 +57,9 @@ scheduler	Control	decides where pods go
 controller-manager	Control	decides corrections to reconcile state
 kubelet	Data	executes — starts/stops containers on its node
 kube-proxy	Data	executes — programs packet forwarding on its node
+
+cloud-controller-manager — a separate controller-manager specifically for cloud-provider-specific logic (e.g., provisioning an AWS ELB when you create a LoadBalancer-type Service, or tagging EC2 instances as Nodes). This is what lets core Kubernetes stay cloud-agnostic — AWS/GCP/Azure-specific code lives here instead of being baked into the main controller-manager. Since you work with EKS, this is actually running in your clusters right now, just managed by AWS.
+- Control PLane
+
+Container runtime (one we haven't covered) — the actual thing that runs containers (containerd, CRI-O). kubelet doesn't run containers itself — it talks to the container runtime via a standard interface called the CRI (Container Runtime Interface) and tells it "start this container." This is a whole concept on its own if you want to go there.
+- Data Plane
